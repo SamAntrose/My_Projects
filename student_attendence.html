@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title >Student Attendence</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='8' fill='%235b6ef5'/%3E%3Crect x='5' y='5' width='10' height='10' rx='2' fill='white'/%3E%3Crect x='7' y='7' width='6' height='6' rx='1' fill='%235b6ef5'/%3E%3Crect x='21' y='5' width='10' height='10' rx='2' fill='white'/%3E%3Crect x='23' y='7' width='6' height='6' rx='1' fill='%235b6ef5'/%3E%3Crect x='5' y='21' width='10' height='10' rx='2' fill='white'/%3E%3Crect x='7' y='23' width='6' height='6' rx='1' fill='%235b6ef5'/%3E%3Crect x='21' y='21' width='3' height='3' rx='.5' fill='white'/%3E%3Crect x='25' y='21' width='3' height='3' rx='.5' fill='white'/%3E%3Crect x='21' y='25' width='3' height='3' rx='.5' fill='white'/%3E%3Ccircle cx='29' cy='9' r='5' fill='%232dd4a0'/%3E%3Cpath d='M26.5 9l2 2 3-3' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+
+<!-- PWA Meta -->
+<meta name="application-name" content="QR Attend">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="QR Attend">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0f14">
+<meta name="description" content="QR-based student attendance system with day order">
+
+<!-- PWA Manifest (inline via JS blob — no separate file needed) -->
+<link id="manifest-link" rel="manifest">
+
+<!-- Apple touch icon (inline SVG → data URI) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%235b6ef5'/%3E%3Crect x='24' y='24' width='56' height='56' rx='10' fill='white'/%3E%3Crect x='34' y='34' width='36' height='36' rx='6' fill='%235b6ef5'/%3E%3Crect x='112' y='24' width='56' height='56' rx='10' fill='white'/%3E%3Crect x='122' y='34' width='36' height='36' rx='6' fill='%235b6ef5'/%3E%3Crect x='24' y='112' width='56' height='56' rx='10' fill='white'/%3E%3Crect x='34' y='122' width='36' height='36' rx='6' fill='%235b6ef5'/%3E%3Crect x='112' y='112' width='18' height='18' rx='4' fill='white'/%3E%3Crect x='138' y='112' width='18' height='18' rx='4' fill='white'/%3E%3Crect x='112' y='138' width='18' height='18' rx='4' fill='white'/%3E%3Crect x='138' y='138' width='18' height='18' rx='4' fill='%23f5a623'/%3E%3Ccircle cx='158' cy='46' r='30' fill='%232dd4a0'/%3E%3Cpath d='M146 46l10 10 16-16' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Epilogue:wght@300;400;500;600&display=swap');
+
+/* ── PWA / MOBILE ── */
+* { -webkit-tap-highlight-color: transparent; }
+html { height: 100%; }
+body {
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Install banner */
+#install-banner {
+  display: none;
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  z-index: 999;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  animation: slideUp .3s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: none; opacity:1; } }
+#install-banner .ib-row { display: flex; align-items: center; gap: 1rem; }
+#install-banner .ib-icon { flex-shrink: 0; }
+#install-banner .ib-text { flex: 1; }
+#install-banner .ib-title { font-family:'Syne',sans-serif; font-weight:700; font-size:.9rem; margin-bottom:.15rem; }
+#install-banner .ib-sub { font-size:.75rem; color: var(--muted); }
+#install-banner .ib-btns { display:flex; gap:.5rem; margin-top:.85rem; }
+
+/* Bottom nav for mobile */
+#bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: .5rem .5rem calc(.5rem + env(safe-area-inset-bottom));
+  z-index: 90;
+  justify-content: space-around;
+}
+#bottom-nav button {
+  font-family: 'Epilogue', sans-serif;
+  font-size: .6rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+  padding: .4rem .6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s;
+  min-width: 52px;
+}
+#bottom-nav button .bn-icon { font-size: 1.2rem; line-height: 1; }
+#bottom-nav button.active { color: var(--accent); background: rgba(91,110,245,.1); }
+
+@media (max-width: 640px) {
+  header nav { display: none; }
+  #bottom-nav { display: flex; }
+  main { padding: 1rem .85rem 5rem; }
+  .two-col, .three-col { grid-template-columns: 1fr; }
+  .scanner-wrap { grid-template-columns: 1fr; }
+  .tt-grid { grid-template-columns: 1fr 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stu-grid { grid-template-columns: 1fr 1fr; }
+  .ptitle { font-size: 1.2rem; }
+}
+
+:root {
+  --bg: #0e0f14;
+  --surface: #181920;
+  --surface2: #1f2029;
+  --border: #2a2b36;
+  --text: #eeeef0;
+  --muted: #6b6c7a;
+  --accent: #5b6ef5;
+  --accent2: #f5a623;
+  --green: #2dd4a0;
+  --red: #f55b6e;
+  --amber: #f5a623;
+  --lab-color: #a78bfa;
+  --elec-a: #38bdf8;
+  --elec-b: #fb923c;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Epilogue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── HEADER ── */
+header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  height:56px;padding:0 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:.95rem;letter-spacing:.02em;}
+.logo em{color:var(--accent);font-style:normal;}
+
+nav{display:flex;gap:.2rem;}
+nav button{
+  font-family:'Epilogue',sans-serif;font-size:.78rem;font-weight:500;
+  padding:.35rem .85rem;border:none;border-radius:5px;cursor:pointer;
+  background:transparent;color:var(--muted);transition:all .15s;
+}
+nav button:hover{color:var(--text);background:var(--surface2);}
+nav button.active{color:var(--bg);background:var(--text);}
+
+/* ── MAIN ── */
+main{max-width:1280px;margin:0 auto;padding:1.5rem;}
+
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── TITLES ── */
+.ptitle{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:.25rem;}
+.psub{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem;}
+
+/* ── GRID LAYOUTS ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+@media(max-width:750px){.two-col,.three-col{grid-template-columns:1fr;}}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem;}
+.card-title{font-family:'Syne',sans-serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:1rem;}
+
+/* ── TIMETABLE ── */
+.tt-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;margin-bottom:1.5rem;}
+@media(max-width:900px){.tt-grid{grid-template-columns:repeat(2,1fr);}}
+.day-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem;}
+.day-label{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:.6rem;}
+.period-row{font-size:.72rem;padding:.3rem 0;border-bottom:1px solid var(--border);display:flex;gap:.4rem;align-items:flex-start;}
+.period-row:last-child{border-bottom:none;}
+.pnum{font-family:'Syne',sans-serif;font-weight:700;color:var(--muted);min-width:18px;font-size:.68rem;}
+.subj-tag{padding:.1rem .45rem;border-radius:12px;font-size:.65rem;font-weight:500;display:inline-block;}
+.tag-normal{background:rgba(91,110,245,.18);color:var(--accent);}
+.tag-lab{background:rgba(167,139,250,.18);color:var(--lab-color);}
+.tag-elec-a{background:rgba(56,189,248,.18);color:var(--elec-a);}
+.tag-elec-b{background:rgba(251,146,60,.18);color:var(--elec-b);}
+
+/* ── STUDENTS SETUP ── */
+.stu-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;max-height:380px;overflow-y:auto;padding-right:.25rem;}
+@media(max-width:700px){.stu-grid{grid-template-columns:repeat(2,1fr);}}
+.stu-item{display:flex;align-items:center;gap:.3rem;}
+.stu-badge{font-family:'Syne',sans-serif;font-size:.6rem;padding:.15rem .35rem;border-radius:4px;flex-shrink:0;min-width:28px;text-align:center;}
+.badge-a{background:rgba(56,189,248,.2);color:var(--elec-a);}
+.badge-b{background:rgba(251,146,60,.2);color:var(--elec-b);}
+.badge-tbd{background:rgba(107,108,122,.2);color:var(--muted);}
+.stu-item input{flex:1;padding:.35rem .5rem;border:1px solid var(--border);border-radius:5px;font-family:'Epilogue',sans-serif;font-size:.75rem;background:var(--bg);color:var(--text);}
+.stu-item input:focus{outline:none;border-color:var(--accent);}
+
+/* ── BUTTONS ── */
+.btn{font-family:'Epilogue',sans-serif;font-weight:600;font-size:.82rem;padding:.55rem 1.2rem;border:none;border-radius:6px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.35rem;}
+.btn-accent{background:var(--accent);color:white;}
+.btn-accent:hover{background:#4a5de0;transform:translateY(-1px);}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.btn-outline:hover{border-color:var(--text);}
+.btn-red{background:var(--red);color:white;}
+.btn-green{background:var(--green);color:#000;}
+.flex-gap{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;}
+.mt1{margin-top:1rem;}
+
+/* ── NOTICE ── */
+.notice{padding:.6rem 1rem;border-radius:6px;font-size:.82rem;font-weight:500;display:none;margin-top:.75rem;}
+.notice.ok{background:rgba(45,212,160,.12);color:var(--green);display:block;}
+.notice.info{background:rgba(91,110,245,.12);color:var(--accent);display:block;}
+.notice.warn{background:rgba(245,166,35,.12);color:var(--amber);display:block;}
+
+/* ── QR CARDS ── */
+.qr-controls{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;}
+.qr-controls select,
+.sel{font-family:'Epilogue',sans-serif;font-size:.82rem;padding:.45rem .85rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;}
+.qr-controls select:focus,.sel:focus{outline:none;border-color:var(--accent);}
+
+.qr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:.85rem;}
+.qr-card{
+  background:white;color:#111;
+  border-radius:10px;padding:.85rem;
+  display:flex;flex-direction:column;align-items:center;gap:.45rem;
+  transition:box-shadow .15s;break-inside:avoid;
+}
+.qr-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.35);}
+.qr-id{font-family:'Syne',sans-serif;font-size:.6rem;color:#888;letter-spacing:.06em;}
+.qr-name{font-family:'Syne',sans-serif;font-weight:700;font-size:.78rem;text-align:center;color:#111;line-height:1.3;}
+.qr-wrap{width:108px;height:108px;display:flex;align-items:center;justify-content:center;}
+.qr-wrap canvas,.qr-wrap img{width:108px!important;height:108px!important;}
+.qr-group{font-size:.62rem;font-weight:600;padding:.15rem .5rem;border-radius:10px;}
+.grp-a{background:#dbeffe;color:#0369a1;}
+.grp-b{background:#fff0e6;color:#c2410c;}
+.grp-tbd{background:#e5e5e8;color:#555;}
+
+/* ── SCANNER ── */
+.scanner-wrap{display:grid;grid-template-columns:360px 1fr;gap:1.5rem;align-items:start;}
+@media(max-width:850px){.scanner-wrap{grid-template-columns:1fr;}}
+
+.scan-context{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem;}
+.scan-context label{font-size:.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem;}
+
+#vcont{position:relative;width:100%;aspect-ratio:1;background:#000;border-radius:8px;overflow:hidden;margin-bottom:.75rem;}
+#vcont video{width:100%;height:100%;object-fit:cover;}
+.no-cam{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.5rem;color:var(--muted);font-size:.82rem;}
+.sf{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.sf-inner{width:52%;aspect-ratio:1;border:2px solid var(--accent);border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.5);position:relative;}
+.sf-inner::after{content:'';position:absolute;top:5%;left:5%;width:90%;height:2px;background:var(--accent);animation:sweep 1.8s ease-in-out infinite;}
+@keyframes sweep{0%,100%{top:8%;}50%{top:84%;}}
+
+#s-status{font-size:.82rem;padding:.5rem .85rem;border-radius:6px;margin-bottom:.65rem;display:none;}
+#s-status.ok{background:rgba(45,212,160,.12);color:var(--green);display:block;}
+#s-status.err{background:rgba(245,91,110,.12);color:var(--red);display:block;}
+#s-status.info{background:rgba(91,110,245,.12);color:var(--accent);display:block;}
+#s-status.warn{background:rgba(245,166,35,.12);color:var(--amber);display:block;}
+
+.log-scroll{max-height:400px;overflow-y:auto;}
+.log-row{display:flex;align-items:flex-start;gap:.6rem;padding:.55rem 0;border-bottom:1px solid var(--border);animation:fi .25s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+.ldot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.ldot.present{background:var(--green);}
+.ldot.absent{background:var(--red);}
+.ldot.dup{background:var(--amber);}
+.lbody{flex:1;}
+.lname{font-weight:600;font-size:.82rem;}
+.ldet{font-size:.71rem;color:var(--muted);margin-top:.1rem;}
+.ltime-block{text-align:right;flex-shrink:0;}
+.ltime{font-family:'Syne',sans-serif;font-size:.68rem;color:var(--muted);}
+.ldate{font-family:'Syne',sans-serif;font-size:.6rem;color:var(--muted);opacity:.7;}
+
+.pbadge{font-size:.6rem;font-weight:700;padding:.1rem .4rem;border-radius:10px;margin-left:.3rem;}
+.pbadge.p{background:rgba(45,212,160,.15);color:var(--green);}
+.pbadge.a{background:rgba(245,91,110,.15);color:var(--red);}
+
+/* ── REPORT ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem;}
+@media(max-width:600px){.stats{grid-template-columns:1fr 1fr;}}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center;}
+.sval{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;line-height:1;margin-bottom:.2rem;}
+.slbl{font-size:.7rem;color:var(--muted);}
+
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:auto;}
+.rtbl{width:100%;border-collapse:collapse;font-size:.8rem;min-width:700px;}
+.rtbl th{background:var(--surface2);font-family:'Syne',sans-serif;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;padding:.7rem 1rem;text-align:left;white-space:nowrap;color:var(--muted);}
+.rtbl td{padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--text);}
+.rtbl tr:last-child td{border-bottom:none;}
+.rtbl tr:hover td{background:var(--surface2);}
+.pill{display:inline-block;font-family:'Syne',sans-serif;font-size:.6rem;font-weight:700;padding:.15rem .5rem;border-radius:10px;}
+.pill.p{background:rgba(45,212,160,.12);color:var(--green);}
+.pill.a{background:rgba(245,91,110,.12);color:var(--red);}
+.pill.lab{background:rgba(167,139,250,.12);color:var(--lab-color);}
+.pill.ea{background:rgba(56,189,248,.12);color:var(--elec-a);}
+.pill.eb{background:rgba(251,146,60,.12);color:var(--elec-b);}
+
+.empty{text-align:center;padding:2.5rem;color:var(--muted);font-size:.85rem;}
+.eicon{font-size:2rem;margin-bottom:.5rem;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── PRINT ── */
+@media print{
+  body{background:white;color:#111;}
+  header,nav,.qr-controls,.no-print{display:none!important;}
+  .qr-grid{grid-template-columns:repeat(4,1fr);gap:.4rem;}
+  .qr-card{border:1px solid #ddd;break-inside:avoid;background:white;}
+  .view{display:none!important;}
+  #view-qr{display:block!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── INSTALL BANNER ── -->
+<div id="install-banner">
+  <div class="ib-row">
+    <div class="ib-icon">
+      <svg width="44" height="44" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="8" fill="#5b6ef5"/><rect x="5" y="5" width="10" height="10" rx="2" fill="white"/><rect x="7" y="7" width="6" height="6" rx="1" fill="#5b6ef5"/><rect x="21" y="5" width="10" height="10" rx="2" fill="white"/><rect x="23" y="7" width="6" height="6" rx="1" fill="#5b6ef5"/><rect x="5" y="21" width="10" height="10" rx="2" fill="white"/><rect x="7" y="23" width="6" height="6" rx="1" fill="#5b6ef5"/><rect x="21" y="21" width="3" height="3" rx=".5" fill="white"/><rect x="25" y="21" width="3" height="3" rx=".5" fill="white"/><rect x="21" y="25" width="3" height="3" rx=".5" fill="white"/><rect x="25" y="25" width="2" height="2" rx=".5" fill="#f5a623"/><circle cx="29" cy="9" r="5" fill="#2dd4a0"/><path d="M26.5 9l2 2 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="ib-text">
+      <div class="ib-title">Install QR Attend</div>
+      <div class="ib-sub">Add to home screen — works offline like an app</div>
+    </div>
+  </div>
+  <div class="ib-btns">
+    <button class="btn btn-accent" style="flex:1;justify-content:center;" onclick="installApp()">⬇ Install App</button>
+    <button class="btn btn-outline" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+  </div>
+</div>
+
+<!-- ── BOTTOM NAV (mobile) ── -->
+<div id="bottom-nav">
+  <button class="active" onclick="gv('setup')"><span class="bn-icon">⚙️</span>Setup</button>
+  <button onclick="gv('timetable')"><span class="bn-icon">📅</span>Timetable</button>
+  <button onclick="gv('qr')"><span class="bn-icon">📇</span>QR Cards</button>
+  <button onclick="gv('scanner')"><span class="bn-icon">📷</span>Scanner</button>
+  <button onclick="gv('report')"><span class="bn-icon">📊</span>Report</button>
+</div>
+
+<header>
+  <div class="logo" style="display:flex;align-items:center;gap:.65rem;">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Outer rounded square -->
+      <rect width="36" height="36" rx="8" fill="#5b6ef5"/>
+      <!-- QR corner squares -->
+      <rect x="5" y="5" width="10" height="10" rx="2" fill="white"/>
+      <rect x="7" y="7" width="6" height="6" rx="1" fill="#5b6ef5"/>
+      <rect x="21" y="5" width="10" height="10" rx="2" fill="white"/>
+      <rect x="23" y="7" width="6" height="6" rx="1" fill="#5b6ef5"/>
+      <rect x="5" y="21" width="10" height="10" rx="2" fill="white"/>
+      <rect x="7" y="23" width="6" height="6" rx="1" fill="#5b6ef5"/>
+      <!-- QR data dots -->
+      <rect x="21" y="21" width="3" height="3" rx=".5" fill="white"/>
+      <rect x="25" y="21" width="3" height="3" rx=".5" fill="white"/>
+      <rect x="29" y="21" width="2" height="2" rx=".5" fill="white"/>
+      <rect x="21" y="25" width="3" height="3" rx=".5" fill="white"/>
+      <rect x="25" y="25" width="2" height="2" rx=".5" fill="#f5a623"/>
+      <rect x="28" y="24" width="3" height="4" rx=".5" fill="white"/>
+      <rect x="21" y="29" width="3" height="2" rx=".5" fill="white"/>
+      <rect x="25" y="29" width="5" height="2" rx=".5" fill="white"/>
+      <!-- Checkmark accent -->
+      <circle cx="29" cy="9" r="5" fill="#2dd4a0"/>
+      <path d="M26.5 9l2 2 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:.95rem;letter-spacing:.01em;line-height:1.1;">QR<em style="color:#5b6ef5;font-style:normal;">.</em>Attend</div>
+      <div style="font-size:.55rem;color:var(--muted);font-family:'Epilogue',sans-serif;font-weight:400;letter-spacing:.06em;text-transform:uppercase;">Day Order System</div>
+    </div>
+  </div>
+  <nav>
+    <button class="active" onclick="gv('setup')">⚙ Setup</button>
+    <button onclick="gv('timetable')">📅 Timetable</button>
+    <button onclick="gv('qr')">📇 QR Cards</button>
+    <button onclick="gv('scanner')">📷 Scanner</button>
+    <button onclick="gv('report')">📊 Report</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ══ SETUP ══ -->
+<div id="view-setup" class="view active">
+  <div class="ptitle">Setup</div>
+  <div class="psub">Enter student names. Register numbers are auto-assigned (<strong>RA2532241040001 – RA2532241040060</strong>). Elective groups (Data Visualization / Mobile App Dev) will be assigned later.</div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">👤 Students (60)</div>
+      <div class="stu-grid" id="stu-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">ℹ Subject Legend</div>
+      <div style="font-size:.8rem;line-height:2.1;color:var(--muted);">
+        <div><span class="subj-tag tag-normal">OT</span> &nbsp;Optimization Techniques</div>
+        <div><span class="subj-tag tag-normal">DAP</span> &nbsp;Data Analysis Using Python</div>
+        <div><span class="subj-tag tag-normal">AIML</span> &nbsp;AI & Machine Learning</div>
+        <div><span class="subj-tag tag-normal">AOS</span> &nbsp;Advanced Operating System</div>
+        <div><span class="subj-tag tag-normal">IoT</span> &nbsp;Internet of Things</div>
+        <div><span class="subj-tag tag-normal">SS</span> &nbsp;Soft Skills – Verbal Mastery</div>
+        <div><span class="subj-tag tag-elec-a">DV</span> &nbsp;Data Visualization <em style="font-size:.68rem;">(Elective A — Stu 1–30)</em></div>
+        <div><span class="subj-tag tag-elec-b">MAD</span> &nbsp;Mobile App Development <em style="font-size:.68rem;">(Elective B — Stu 31–60)</em></div>
+        <div><span class="subj-tag tag-lab">★ Lab</span> &nbsp;Double period lab session</div>
+      </div>
+      <div style="margin-top:1.25rem;padding:1rem;background:var(--surface2);border-radius:8px;font-size:.78rem;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;color:var(--accent2);margin-bottom:.5rem;">QR Code Logic</div>
+        <div style="color:var(--muted);line-height:1.7;">
+          Each student gets <strong style="color:var(--text)">1 unique QR card</strong>.<br>
+          The teacher selects <strong style="color:var(--text)">Day Order + Period</strong> before scanning.<br>
+          The system auto-maps to the correct subject including elective group.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex-gap mt1">
+    <button class="btn btn-accent" onclick="saveSetup()">✅ Save & Generate QR Codes</button>
+    <button class="btn btn-outline" onclick="resetDef()">↺ Reset Names</button>
+  </div>
+  <div id="setup-msg" class="notice"></div>
+</div>
+
+<!-- ══ TIMETABLE ══ -->
+<div id="view-timetable" class="view">
+  <div class="ptitle">Day Order Timetable</div>
+  <div class="psub">5 day rotation — each student's schedule based on their elective group.</div>
+  <div class="tt-grid" id="tt-grid"></div>
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap;font-size:.75rem;color:var(--muted);">
+    <span><span class="subj-tag tag-normal" style="margin-right:.3rem;">■</span>Regular subject</span>
+    <span><span class="subj-tag tag-lab" style="margin-right:.3rem;">■</span>Lab (double period)</span>
+    <span><span class="subj-tag tag-elec-a" style="margin-right:.3rem;">■</span>Elective A – Data Viz (1–30)</span>
+    <span><span class="subj-tag tag-elec-b" style="margin-right:.3rem;">■</span>Elective B – Mobile App (31–60)</span>
+  </div>
+</div>
+
+<!-- ══ QR CARDS ══ -->
+<div id="view-qr" class="view">
+  <div class="ptitle">QR Cards</div>
+  <div class="psub">One QR card per student. Print and give to each student — they use this for all subjects.</div>
+  <div class="qr-controls no-print">
+    <select id="qr-grp" onchange="renderQR()">
+      <option value="all">All Students</option>
+      <option value="A">Group A — Data Viz (1–30)</option>
+      <option value="B">Group B — Mobile App (31–60)</option>
+    </select>
+    <input type="text" id="qr-search" placeholder="Search name…" oninput="renderQR()" style="font-family:'Epilogue',sans-serif;font-size:.82rem;padding:.45rem .85rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);width:180px;">
+    <button class="btn btn-outline no-print" onclick="window.print()">🖨 Print All Cards</button>
+  </div>
+  <div class="qr-grid" id="qr-grid">
+    <div class="empty"><div class="eicon">📇</div>Complete Setup first.</div>
+  </div>
+</div>
+
+<!-- ══ SCANNER ══ -->
+<div id="view-scanner" class="view">
+  <div class="ptitle">Scanner</div>
+  <div class="psub">Select Day Order and Period, then scan student QR codes.</div>
+  <div class="scanner-wrap">
+    <div class="card">
+      <div class="card-title">📷 Camera</div>
+      <div class="scan-context">
+        <div>
+          <label>Day Order</label>
+          <select id="sc-day" class="sel" style="width:100%;" onchange="updateScanContext()">
+            <option value="">— Day —</option>
+            <option value="1">Day 1</option>
+            <option value="2">Day 2</option>
+            <option value="3">Day 3</option>
+            <option value="4">Day 4</option>
+            <option value="5">Day 5</option>
+          </select>
+        </div>
+        <div>
+          <label>Period</label>
+          <select id="sc-period" class="sel" style="width:100%;" onchange="updateScanContext()">
+            <option value="">— Select Day first —</option>
+          </select>
+        </div>
+      </div>
+      <!-- Date picker -->
+      <div style="margin-bottom:.75rem;">
+        <label style="font-size:.75rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem;">
+          📅 Attendance Date
+          <span id="backdate-badge" style="display:none;margin-left:.5rem;font-size:.65rem;font-weight:700;padding:.1rem .45rem;border-radius:10px;background:rgba(245,166,35,.15);color:var(--amber);">BACKDATING</span>
+        </label>
+        <input type="date" id="sc-date" class="sel" style="width:100%;" onchange="updateScanContext()">
+      </div>
+      <!-- Context preview -->
+      <div id="ctx-preview" style="margin-bottom:.85rem;padding:.6rem .85rem;background:var(--surface2);border-radius:6px;font-size:.75rem;min-height:38px;color:var(--muted);display:flex;align-items:center;flex-wrap:wrap;gap:.4rem;">
+        Select day order and period above to see subject.
+      </div>
+      <div id="vcont">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <div class="sf"><div class="sf-inner"></div></div>
+        <div class="no-cam" id="no-cam"><span style="font-size:2rem;">📷</span>Camera not started</div>
+      </div>
+      <div id="s-status"></div>
+      <div class="flex-gap" style="margin-bottom:1rem;">
+        <button class="btn btn-accent" id="start-btn" onclick="startCam()">▶ Start Camera</button>
+        <button class="btn btn-outline" id="stop-btn" onclick="stopCam()" style="display:none;">⏹ Stop</button>
+        <button class="btn btn-outline" id="torch-btn" onclick="toggleTorch()" style="display:none;">🔦 Torch</button>
+      </div>
+      <details style="border:1px solid var(--border);border-radius:7px;padding:.75rem;">
+        <summary style="font-size:.78rem;font-weight:600;cursor:pointer;color:var(--muted);">⌨️ Manual Entry</summary>
+        <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.5rem;">
+          <select id="man-stu" class="sel" style="width:100%;"><option value="">— Select student —</option></select>
+          <button class="btn btn-green" style="width:100%;justify-content:center;" onclick="markManual()">✅ Mark Present</button>
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;">
+        <span>✅ Attendance Log</span>
+        <span id="scan-count" style="font-family:'Syne',sans-serif;font-weight:400;color:var(--muted);font-size:.7rem;"></span>
+      </div>
+      <div class="log-scroll" id="att-log">
+        <div class="empty"><div class="eicon">📋</div>No scans yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REPORT ══ -->
+<div id="view-report" class="view">
+  <div class="ptitle">Attendance Report</div>
+  <div class="psub">Records filtered by day order, period, and date.</div>
+  <div class="flex-gap" style="margin-bottom:1.25rem;">
+    <select id="rpt-day" class="sel" onchange="renderReport()">
+      <option value="all">All Days</option>
+      <option value="1">Day 1</option><option value="2">Day 2</option>
+      <option value="3">Day 3</option><option value="4">Day 4</option>
+      <option value="5">Day 5</option>
+    </select>
+    <select id="rpt-period" class="sel" onchange="renderReport()">
+      <option value="all">All Periods</option>
+      <option value="1">P1</option><option value="2">P2</option>
+      <option value="3">P3</option><option value="4">P4</option>
+      <option value="5">P5</option><option value="6">P6</option>
+    </select>
+    <select id="rpt-grp" class="sel" onchange="renderReport()">
+      <option value="all">All Groups</option>
+      <option value="A">Group A (Data Viz)</option>
+      <option value="B">Group B (Mobile App)</option>
+    </select>
+    <select id="rpt-date" class="sel" onchange="renderReport()">
+      <option value="all">All Dates</option>
+    </select>
+    <button class="btn btn-outline no-print" style="margin-left:auto;" onclick="clearAll()">🗑 Clear</button>
+    <button class="btn btn-accent no-print" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+  <div class="stats">
+    <div class="scard"><div class="sval" id="st-total">0</div><div class="slbl">Students</div></div>
+    <div class="scard"><div class="sval" id="st-pres" style="color:var(--green)">0</div><div class="slbl">Present</div></div>
+    <div class="scard"><div class="sval" id="st-abs" style="color:var(--red)">0</div><div class="slbl">Absent</div></div>
+    <div class="scard"><div class="sval" id="st-pct" style="color:var(--accent2)">0%</div><div class="slbl">Attendance %</div></div>
+  </div>
+  <div class="tbl-wrap">
+    <table class="rtbl">
+      <thead><tr><th>#</th><th>Student</th><th>Register No</th><th>Group</th><th>Day</th><th>Period</th><th>Subject</th><th>Status</th><th>Time</th><th>Date</th></tr></thead>
+      <tbody id="rpt-body"><tr><td colspan="10" class="empty">No records.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════════
+// TIMETABLE — Day Order 1–5, Periods 1–6
+// type: 'normal' | 'lab' | 'elective' | 'lab-elective'
+// For elective: subjectA = Group A, subjectB = Group B
+// Lab periods share the same lab session (mark once covers both)
+// ════════════════════════════════════════════════
+const TT = {
+  1: [
+    {p:1, type:'normal',   subject:'Optimization Techniques'},
+    {p:2, type:'normal',   subject:'Data Analysis Using Python'},
+    {p:3, type:'normal',   subject:'AI & Machine Learning'},
+    {p:4, type:'elective', subjectA:'Data Visualization', subjectB:'Mobile App Development'},
+    {p:5, type:'lab',      subject:'AI & ML Lab'},
+    {p:6, type:'lab',      subject:'AI & ML Lab'},
+  ],
+  2: [
+    {p:1, type:'normal',   subject:'AI & Machine Learning'},
+    {p:2, type:'normal',   subject:'Advanced Operating System'},
+    {p:3, type:'normal',   subject:'Soft Skills – Verbal Mastery'},
+    {p:4, type:'elective', subjectA:'Data Visualization', subjectB:'Mobile App Development'},
+    {p:5, type:'lab',      subject:'Data Analysis Python Lab'},
+    {p:6, type:'lab',      subject:'Data Analysis Python Lab'},
+  ],
+  3: [
+    {p:1, type:'normal',   subject:'Optimization Techniques'},
+    {p:2, type:'normal',   subject:'Data Analysis Using Python'},
+    {p:3, type:'normal',   subject:'Advanced Operating System'},
+    {p:4, type:'normal',   subject:'Internet of Things'},
+    {p:5, type:'lab',      subject:'Advanced OS Lab'},
+    {p:6, type:'lab',      subject:'Advanced OS Lab'},
+  ],
+  4: [
+    {p:1, type:'elective', subjectA:'Data Visualization', subjectB:'Mobile App Development'},
+    {p:2, type:'lab',      subject:'Internet of Things Lab'},
+    {p:3, type:'lab',      subject:'Internet of Things Lab'},
+    {p:4, type:'normal',   subject:'AI & Machine Learning'},
+    {p:5, type:'normal',   subject:'Soft Skills – Verbal Mastery'},
+    {p:6, type:'normal',   subject:'Optimization Techniques'},
+  ],
+  5: [
+    {p:1, type:'normal',   subject:'Data Analysis Using Python'},
+    {p:2, type:'normal',   subject:'Optimization Techniques'},
+    {p:3, type:'normal',   subject:'Advanced Operating System'},
+    {p:4, type:'normal',   subject:'Internet of Things'},
+    {p:5, type:'lab-elective', subjectA:'Data Visualization Lab', subjectB:'Mobile App Dev Lab'},
+    {p:6, type:'lab-elective', subjectA:'Data Visualization Lab', subjectB:'Mobile App Dev Lab'},
+  ],
+};
+
+// Returns subject name for a given day, period, group ('A'|'B')
+function getSubject(day, period, group) {
+  const slot = TT[day]?.[period-1];
+  if (!slot) return '—';
+  if (slot.type === 'normal' || slot.type === 'lab') return slot.subject;
+  if (slot.type === 'elective' || slot.type === 'lab-elective') {
+    return group === 'A' ? slot.subjectA : slot.subjectB;
+  }
+  return '—';
+}
+
+function isLab(day, period) {
+  const slot = TT[day]?.[period-1];
+  return slot && (slot.type === 'lab' || slot.type === 'lab-elective');
+}
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let students = []; // [{name, regNo, group}]  group: 'A'|'B'|'TBD'
+// attendance[regNo][day][period][date] = {status,time,subject,group,name}
+let attendance = {};
+let qrGenerated = false;
+let camStream = null, rafId = null;
+let lastQR = '', lastQRt = 0;
+
+const REG_PREFIX = 'RA25322410400';
+function genRegNo(i) { return REG_PREFIX + String(i+1).padStart(2,'0'); }
+
+// ════════════════════════════════════════════════
+// LOCALSTORAGE
+// ════════════════════════════════════════════════
+function save() {
+  try {
+    localStorage.setItem('qra_v3_students',   JSON.stringify(students));
+    localStorage.setItem('qra_v3_attendance', JSON.stringify(attendance));
+    localStorage.setItem('qra_v3_qrgen',      JSON.stringify(qrGenerated));
+  } catch(e) {}
+}
+function load() {
+  try {
+    const s = localStorage.getItem('qra_v3_students');
+    const a = localStorage.getItem('qra_v3_attendance');
+    const q = localStorage.getItem('qra_v3_qrgen');
+    if (s) students   = JSON.parse(s);
+    if (a) attendance = JSON.parse(a);
+    if (q) qrGenerated = JSON.parse(q);
+    return !!s;
+  } catch(e) { return false; }
+}
+
+// ════════════════════════════════════════════════
+// DEFAULTS
+// ════════════════════════════════════════════════
+function initDefaults() {
+  students = Array.from({length:60}, (_,i) => ({
+    name: `Student ${String(i+1).padStart(2,'0')}`,
+    regNo: genRegNo(i),
+    group: 'TBD'
+  }));
+}
+function resetDef() { initDefaults(); buildSetupUI(); }
+
+function getGroup(idx) { return students[idx]?.group || 'TBD'; }
+
+// ════════════════════════════════════════════════
+// SETUP UI
+// ════════════════════════════════════════════════
+function buildSetupUI() {
+  document.getElementById('stu-list').innerHTML = students.map((stu, i) => {
+    const g = stu.group;
+    const badgeCls = g==='A' ? 'badge-a' : g==='B' ? 'badge-b' : 'badge-tbd';
+    return `<div class="stu-item">
+      <span class="stu-badge ${badgeCls}" title="${stu.regNo}">${String(i+1).padStart(2,'0')}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:'Syne',sans-serif;font-size:.58rem;color:var(--muted);margin-bottom:1px;">${stu.regNo}</div>
+        <input value="${stu.name}" oninput="students[${i}].name=this.value" placeholder="Student ${i+1}" title="${stu.regNo}">
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveSetup() {
+  document.querySelectorAll('#stu-list input').forEach((inp,i) => students[i].name = inp.value.trim() || `Student ${i+1}`);
+  qrGenerated = true;
+  save();
+  fillManSelect();
+  const m = document.getElementById('setup-msg');
+  m.className = 'notice ok';
+  m.textContent = `✅ Saved! 60 students with register numbers ${genRegNo(0)} – ${genRegNo(59)}. QR codes ready. Elective groups will be assigned later.`;
+  setTimeout(()=>m.style.display='none', 7000);
+}
+
+// ════════════════════════════════════════════════
+// TIMETABLE VIEW
+// ════════════════════════════════════════════════
+function buildTimetable() {
+  const grid = document.getElementById('tt-grid');
+  grid.innerHTML = Object.keys(TT).map(d => {
+    const slots = TT[d];
+    const rows = slots.map(sl => {
+      let tag = '';
+      if (sl.type === 'normal') tag = `<span class="subj-tag tag-normal">${sl.subject}</span>`;
+      else if (sl.type === 'lab') tag = `<span class="subj-tag tag-lab">★ ${sl.subject}</span>`;
+      else if (sl.type === 'elective') tag = `<span class="subj-tag tag-elec-a">${sl.subjectA}</span> <span class="subj-tag tag-elec-b">${sl.subjectB}</span>`;
+      else if (sl.type === 'lab-elective') tag = `<span class="subj-tag tag-lab">★</span> <span class="subj-tag tag-elec-a">${sl.subjectA}</span> <span class="subj-tag tag-elec-b">${sl.subjectB}</span>`;
+      return `<div class="period-row"><span class="pnum">P${sl.p}</span><div style="flex:1">${tag}</div></div>`;
+    }).join('');
+    return `<div class="day-card"><div class="day-label">Day ${d}</div>${rows}</div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+// QR CARDS
+// ════════════════════════════════════════════════
+function renderQR() {
+  const grid = document.getElementById('qr-grid');
+  if (!qrGenerated) { grid.innerHTML = `<div class="empty"><div class="eicon">📇</div>Complete Setup first.</div>`; return; }
+  const fGrp = document.getElementById('qr-grp').value;
+  const fSrc = (document.getElementById('qr-search').value||'').toLowerCase();
+  const list = students.map((stu,i)=>({stu,i}))
+    .filter(({stu}) => (fGrp==='all'||stu.group===fGrp) && (stu.name.toLowerCase().includes(fSrc)||stu.regNo.toLowerCase().includes(fSrc)));
+  if (!list.length) { grid.innerHTML = `<div class="empty"><div class="eicon">🔍</div>No match.</div>`; return; }
+  grid.innerHTML = '';
+  list.forEach(({stu,i}) => {
+    const g = stu.group;
+    // QR encodes: QRA|<regNo>|<name>|<group>
+    const qrText = `QRA|${stu.regNo}|${stu.name}|${g}`;
+    const card = document.createElement('div');
+    card.className = 'qr-card';
+    const grpLabel = g==='A' ? 'Grp A – Data Viz' : g==='B' ? 'Grp B – Mobile App' : 'Group TBD';
+    const grpCls   = g==='A' ? 'grp-a' : g==='B' ? 'grp-b' : 'grp-tbd';
+    card.innerHTML = `
+      <div class="qr-id">${stu.regNo}</div>
+      <div id="qw-${i}" class="qr-wrap"></div>
+      <div class="qr-name">${stu.name}</div>
+      <span class="qr-group ${grpCls}">${grpLabel}</span>
+      <div style="display:flex;align-items:center;gap:.3rem;margin-top:.2rem;opacity:.45;">
+        <svg width="12" height="12" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="8" fill="#5b6ef5"/><rect x="5" y="5" width="10" height="10" rx="2" fill="white"/><rect x="7" y="7" width="6" height="6" rx="1" fill="#5b6ef5"/><rect x="21" y="5" width="10" height="10" rx="2" fill="white"/><rect x="23" y="7" width="6" height="6" rx="1" fill="#5b6ef5"/><rect x="5" y="21" width="10" height="10" rx="2" fill="white"/><rect x="7" y="23" width="6" height="6" rx="1" fill="#5b6ef5"/><rect x="21" y="21" width="3" height="3" rx=".5" fill="white"/><rect x="25" y="21" width="3" height="3" rx=".5" fill="white"/><rect x="21" y="25" width="3" height="3" rx=".5" fill="white"/><circle cx="29" cy="9" r="5" fill="#2dd4a0"/><path d="M26.5 9l2 2 3-3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-family:'Syne',sans-serif;font-size:.55rem;font-weight:700;color:#555;">QR.Attend</span>
+      </div>`;
+    grid.appendChild(card);
+    setTimeout(() => {
+      const wrap = document.getElementById(`qw-${i}`);
+      if (wrap && !wrap.querySelector('canvas')) {
+        new QRCode(wrap, { text: qrText, width:108, height:108, colorDark:'#111', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
+      }
+    }, 0);
+  });
+}
+
+// ════════════════════════════════════════════════
+// SCANNER — CONTEXT PREVIEW
+// ════════════════════════════════════════════════
+function updateScanContext() {
+  const day = parseInt(document.getElementById('sc-day').value);
+  const per = parseInt(document.getElementById('sc-period').value);
+  const dateVal = document.getElementById('sc-date').value;
+  const prev = document.getElementById('ctx-preview');
+  const badge = document.getElementById('backdate-badge');
+
+  // Dynamically populate period dropdown based on selected day
+  const perSel = document.getElementById('sc-period');
+  const curPer = perSel.value;
+  if (day) {
+    const slots = TT[day];
+    perSel.innerHTML = `<option value="">— Period —</option>` + slots.map(sl => {
+      let label = '';
+      if (sl.type === 'normal') label = sl.subject;
+      else if (sl.type === 'lab') label = `★ ${sl.subject}`;
+      else if (sl.type === 'elective') label = `${sl.subjectA} / ${sl.subjectB}`;
+      else if (sl.type === 'lab-elective') label = `★ ${sl.subjectA} / ${sl.subjectB}`;
+      return `<option value="${sl.p}">P${sl.p} — ${label}</option>`;
+    }).join('');
+    // Restore previous selection if still valid
+    if (curPer) perSel.value = curPer;
+  } else {
+    perSel.innerHTML = `<option value="">— Select Day first —</option>`;
+  }
+
+  // Backdate badge
+  const today = new Date().toISOString().split('T')[0];
+  if (dateVal && dateVal !== today) {
+    badge.style.display = 'inline';
+    const d = new Date(dateVal);
+    badge.textContent = '↩ BACKDATING: ' + d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // Context preview
+  const newPer = parseInt(document.getElementById('sc-period').value);
+  if (!day || !newPer) {
+    prev.innerHTML = '<span style="color:var(--muted)">Select day order and period above to see subject.</span>';
+    return;
+  }
+  const slotA = getSubject(day, newPer, 'A');
+  const slotB = getSubject(day, newPer, 'B');
+  const lab = isLab(day, newPer);
+  const same = slotA === slotB;
+  let html = `<span style="color:var(--accent2);font-family:'Syne',sans-serif;font-weight:700;margin-right:.5rem;">Day ${day} · P${newPer}</span>`;
+  if (same) {
+    html += `<span class="subj-tag ${lab?'tag-lab':'tag-normal'}">${lab?'★ ':''} ${slotA}</span>`;
+  } else {
+    html += `<span class="subj-tag tag-elec-a">${slotA}</span><span style="color:var(--muted);font-size:.7rem;margin:0 .3rem;">·</span><span class="subj-tag tag-elec-b">${slotB}</span>`;
+  }
+  prev.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+// CAMERA — FAST SCAN
+// ════════════════════════════════════════════════
+async function startCam() {
+  const day = document.getElementById('sc-day').value;
+  const per = document.getElementById('sc-period').value;
+  if (!day || !per) { setSt('⚠ Please select Day Order and Period first.', 'warn'); return; }
+  stopCam(true);
+  try {
+    let s;
+    try {
+      // Request higher resolution for better QR detection
+      s = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:30} }
+      });
+    } catch(e) {
+      try { s = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}}); }
+      catch(e2) { s = await navigator.mediaDevices.getUserMedia({video:true}); }
+    }
+    camStream = s;
+
+    // Try to enable torch/flash on mobile
+    const track = s.getVideoTracks()[0];
+    if (track?.getCapabilities?.()?.torch) {
+      try { await track.applyConstraints({advanced:[{torch:false}]}); } catch(e){}
+      document.getElementById('torch-btn').style.display = '';
+    }
+
+    const v = document.getElementById('video');
+    document.getElementById('no-cam').style.display = 'none';
+    v.srcObject = s;
+    await new Promise((res,rej) => {
+      v.onloadedmetadata = () => v.play().then(res).catch(rej);
+      setTimeout(rej, 8000);
+    });
+
+    document.getElementById('start-btn').style.display = 'none';
+    document.getElementById('stop-btn').style.display = '';
+    setSt('📷 Camera active — hold QR code close and steady.', 'info');
+
+    // Use a FIXED small canvas (400×400) for fast jsQR processing
+    // jsQR is much faster on smaller images — 400px is enough for QR detection
+    const cv = document.getElementById('canvas');
+    cv.width = 400; cv.height = 400;
+    const ctx = cv.getContext('2d', {willReadFrequently:true, alpha:false});
+
+    let scanning = true;
+
+    async function scanLoop() {
+      if (!scanning) return;
+      if (v.readyState >= v.HAVE_ENOUGH_DATA && v.videoWidth > 0) {
+        // Draw video frame into fixed 400×400 canvas (fast downscale)
+        ctx.drawImage(v, 0, 0, 400, 400);
+        const img = ctx.getImageData(0, 0, 400, 400);
+
+        // Try normal first (faster), then inverted only if needed
+        let code = jsQR(img.data, 400, 400, {inversionAttempts:'dontInvert'});
+        if (!code) code = jsQR(img.data, 400, 400, {inversionAttempts:'onlyInvert'});
+
+        if (code?.data) {
+          handleQR(code.data);
+          // Short pause after successful scan to avoid double-scan
+          await new Promise(r => setTimeout(r, 800));
+        }
+      }
+      // Use setTimeout for consistent ~30fps without blocking UI
+      rafId = setTimeout(scanLoop, 33);
+    }
+
+    // Attach stop flag to stream so stopCam can kill the loop
+    camStream._stopScan = () => { scanning = false; };
+    scanLoop();
+
+  } catch(e) {
+    console.error(e);
+    setSt('❌ Camera access denied. Use Manual Entry below.', 'err');
+  }
+}
+
+let torchOn = false;
+async function toggleTorch() {
+  if (!camStream) return;
+  const track = camStream.getVideoTracks()[0];
+  try {
+    torchOn = !torchOn;
+    await track.applyConstraints({advanced:[{torch:torchOn}]});
+    document.getElementById('torch-btn').textContent = torchOn ? '🔦 Torch ON' : '🔦 Torch';
+    document.getElementById('torch-btn').style.background = torchOn ? 'var(--amber)' : '';
+  } catch(e) { setSt('Torch not supported on this device.', 'warn'); }
+}
+
+function stopCam(silent) {
+  if (camStream?._stopScan) camStream._stopScan();
+  if (rafId) { clearTimeout(rafId); cancelAnimationFrame(rafId); rafId = null; }
+  if (camStream) { camStream.getTracks().forEach(t=>t.stop()); camStream = null; }
+  torchOn = false;
+  const v = document.getElementById('video'); if (v) v.srcObject = null;
+  document.getElementById('no-cam').style.display = '';
+  document.getElementById('torch-btn').style.display = 'none';
+  if (!silent) {
+    document.getElementById('start-btn').style.display = '';
+    document.getElementById('stop-btn').style.display = 'none';
+    setSt('Camera stopped.', 'info');
+  }
+}
+
+function handleQR(text) {
+  const now = Date.now();
+  if (text === lastQR && now - lastQRt < 2500) return;
+  lastQR = text; lastQRt = now;
+  // QRA|<regNo>|<name>|<group>
+  if (!text.startsWith('QRA|')) { setSt('⚠ Not a valid student QR code.', 'err'); return; }
+  const parts = text.split('|');
+  if (parts.length < 4) { setSt('⚠ Malformed QR code.', 'err'); return; }
+  const [, regNo, name, group] = parts;
+  // Find student index by regNo
+  const stuIdx = students.findIndex(s => s.regNo === regNo);
+  if (stuIdx === -1) { setSt(`⚠ Register no ${regNo} not found. Re-save Setup.`, 'err'); return; }
+  const day = document.getElementById('sc-day').value;
+  const per = document.getElementById('sc-period').value;
+  doMark(stuIdx, students[stuIdx].name, students[stuIdx].group, parseInt(day), parseInt(per));
+}
+
+function markManual() {
+  const day = document.getElementById('sc-day').value;
+  const per = document.getElementById('sc-period').value;
+  if (!day || !per) { setSt('⚠ Select Day Order and Period first.', 'warn'); return; }
+  const sel = document.getElementById('man-stu');
+  if (!sel.value && sel.value !== '0') { setSt('⚠ Select a student.', 'warn'); return; }
+  const stuIdx = parseInt(sel.value);
+  const name = students[stuIdx];
+  const group = getGroup(stuIdx);
+  doMark(stuIdx, name, group, parseInt(day), parseInt(per));
+}
+
+function doMark(stuIdx, name, group, day, per) {
+  const subject = getSubject(day, per, group);
+  const regNo = students[stuIdx].regNo;
+
+  const dateInput = document.getElementById('sc-date').value;
+  const date = dateInput ? new Date(dateInput).toDateString() : new Date().toDateString();
+  const isBackdate = dateInput && dateInput !== new Date().toISOString().split('T')[0];
+  const time = new Date().toLocaleTimeString();
+
+  if (!attendance[regNo]) attendance[regNo] = {};
+  if (!attendance[regNo][day]) attendance[regNo][day] = {};
+  if (!attendance[regNo][day][per]) attendance[regNo][day][per] = {};
+
+  const isDup = !!attendance[regNo][day][per][date];
+  attendance[regNo][day][per][date] = { status:'present', time, subject, group, name, regNo, stuIdx, day, per, isBackdate };
+  save();
+  addLog(name, regNo, group, day, per, subject, time, date, isDup, isBackdate);
+  updateCount();
+  setSt(isDup
+    ? `⚠ ${name} (${regNo}) already marked for ${subject} on ${date}.`
+    : `✅ ${name} → PRESENT — ${subject}${isBackdate ? ' [↩ backdated: '+date+']' : ''}`,
+    isDup ? 'warn' : 'ok');
+}
+
+function addLog(name, regNo, group, day, per, subject, time, date, isDup, isBackdate) {
+  const log = document.getElementById('att-log');
+  const empty = log.querySelector('.empty'); if (empty) empty.remove();
+  const displayDate = new Date(date).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  const row = document.createElement('div'); row.className = 'log-row';
+  const gTag = group==='TBD'
+    ? `<span style="font-size:.6rem;padding:.1rem .35rem;border-radius:8px;background:rgba(107,108,122,.2);color:var(--muted)">Grp TBD</span>`
+    : `<span style="font-size:.6rem;padding:.1rem .35rem;border-radius:8px;${group==='A'?'background:rgba(56,189,248,.15);color:var(--elec-a)':'background:rgba(251,146,60,.15);color:var(--elec-b)'}">Grp ${group}</span>`;
+  const labTag = isLab(day, per) ? `<span class="pill lab">LAB</span> ` : '';
+  const bdTag = isBackdate ? `<span style="font-size:.6rem;font-weight:700;padding:.1rem .4rem;border-radius:8px;background:rgba(245,166,35,.15);color:var(--amber);">↩ backdated</span> ` : '';
+  const regTag = `<span style="font-size:.58rem;color:var(--muted);font-family:'Syne',sans-serif;">${regNo}</span>`;
+  if (isDup) {
+    row.innerHTML = `<div class="ldot dup"></div><div class="lbody"><div class="lname">${name} ${gTag} <span style="font-size:.6rem;color:var(--amber)">(already marked)</span></div><div class="ldet">${regTag} · Day ${day} · P${per} · ${subject}</div></div><div class="ltime-block"><div class="ltime">${time}</div><div class="ldate">${displayDate}</div></div>`;
+  } else {
+    row.innerHTML = `<div class="ldot present"></div><div class="lbody"><div class="lname">${name} ${gTag} <span class="pbadge p">PRESENT</span> ${bdTag}</div><div class="ldet">${labTag}${regTag} · Day ${day} · P${per} · ${subject}</div></div><div class="ltime-block"><div class="ltime">${time}</div><div class="ldate">${displayDate}</div></div>`;
+  }
+  log.insertBefore(row, log.firstChild);
+}
+
+function updateCount() {
+  let c = 0;
+  Object.values(attendance).forEach(days => Object.values(days).forEach(pers => Object.values(pers).forEach(dates => c += Object.keys(dates).length)));
+  document.getElementById('scan-count').textContent = c + ' total scan' + (c!==1?'s':'');
+}
+
+function setSt(msg, type) { const e=document.getElementById('s-status'); e.textContent=msg; e.className=type; }
+
+// ════════════════════════════════════════════════
+// REPORT
+// ════════════════════════════════════════════════
+function populateDateFilter() {
+  const dates = new Set();
+  Object.values(attendance).forEach(days => Object.values(days).forEach(pers => Object.values(pers).forEach(dts => Object.keys(dts).forEach(d => dates.add(d)))));
+  const sel = document.getElementById('rpt-date');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="all">All Dates</option>` + [...dates].sort().map(d=>`<option value="${d}">${d}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function renderReport() {
+  populateDateFilter();
+  const fDay  = document.getElementById('rpt-day').value;
+  const fPer  = document.getElementById('rpt-period').value;
+  const fGrp  = document.getElementById('rpt-grp').value;
+  const fDate = document.getElementById('rpt-date').value;
+
+  const rows = [];
+  students.forEach((stu, si) => {
+    const { name, regNo, group } = stu;
+    if (fGrp !== 'all' && group !== fGrp) return;
+    const days = fDay === 'all' ? [1,2,3,4,5] : [parseInt(fDay)];
+    days.forEach(d => {
+      const periods = fPer === 'all' ? [1,2,3,4,5,6] : [parseInt(fPer)];
+      periods.forEach(p => {
+        if (fDate !== 'all') {
+          const rec = attendance[regNo]?.[d]?.[p]?.[fDate];
+          rows.push({ si, name, regNo, group, day:d, per:p, date:fDate, subject: getSubject(d,p,group), status: rec ? 'present' : 'absent', time: rec?.time||'—', isLab: isLab(d,p), isBackdate: rec?.isBackdate });
+        } else {
+          Object.entries(attendance[regNo]?.[d]?.[p]||{}).forEach(([date, rec]) => {
+            rows.push({ si, name, regNo, group, day:d, per:p, date, subject:rec.subject, status:'present', time:rec.time, isLab: isLab(d,p), isBackdate: rec.isBackdate });
+          });
+        }
+      });
+    });
+  });
+
+  const pres  = rows.filter(r=>r.status==='present').length;
+  const abs   = rows.filter(r=>r.status==='absent').length;
+  const total = rows.length;
+  const pct   = total ? Math.round(pres/total*100) : 0;
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-pres').textContent  = pres;
+  document.getElementById('st-abs').textContent   = abs;
+  document.getElementById('st-pct').textContent   = pct + '%';
+
+  const body = document.getElementById('rpt-body');
+  if (!rows.length) { body.innerHTML = `<tr><td colspan="9" class="empty">No records. ${fDate!=='all'?'No data for selected date.':'Scan some QR codes first.'}</td></tr>`; return; }
+
+  body.innerHTML = rows.map((r,i) => {
+    const gPill = r.group==='A' ? `<span class="pill ea">Grp A</span>` : r.group==='B' ? `<span class="pill eb">Grp B</span>` : `<span class="pill" style="background:rgba(107,108,122,.15);color:var(--muted)">TBD</span>`;
+    const labPill = r.isLab ? `<span class="pill lab">LAB</span> ` : '';
+    const bdPill  = r.isBackdate ? `<span style="font-size:.6rem;font-weight:700;color:var(--amber);">↩</span> ` : '';
+    return `<tr>
+      <td style="font-family:'Syne',sans-serif;font-size:.65rem;color:var(--muted)">${i+1}</td>
+      <td style="font-weight:600;font-size:.8rem;">${r.name}</td>
+      <td style="font-family:'Syne',sans-serif;font-size:.68rem;color:var(--muted)">${r.regNo}</td>
+      <td>${gPill}</td>
+      <td style="font-family:'Syne',sans-serif;font-size:.7rem;">Day ${r.day}</td>
+      <td style="font-family:'Syne',sans-serif;font-size:.7rem;">P${r.per}</td>
+      <td>${labPill}<span style="font-size:.78rem;">${r.subject}</span></td>
+      <td><span class="pill ${r.status==='present'?'p':'a'}">${r.status.toUpperCase()}</span></td>
+      <td style="font-family:'Syne',sans-serif;font-size:.68rem;color:var(--muted)">${bdPill}${r.time}</td>
+      <td style="font-family:'Syne',sans-serif;font-size:.68rem;color:var(--muted)">${r.date}</td>
+    </tr>`;
+  }).join('');
+}
+
+function clearAll() {
+  if (!confirm('Clear all attendance records?')) return;
+  attendance = {};
+  save();
+  renderReport();
+  document.getElementById('att-log').innerHTML = `<div class="empty"><div class="eicon">📋</div>No scans yet.</div>`;
+  document.getElementById('scan-count').textContent = '';
+}
+
+function exportCSV() {
+  const fDay = document.getElementById('rpt-day').value;
+  const fPer = document.getElementById('rpt-period').value;
+  const rows = ['#,Register No,Student Name,Group,Day Order,Period,Subject,Lab,Backdated,Status,Time,Date'];
+  let n = 1;
+  students.forEach((stu) => {
+    const { name, regNo, group } = stu;
+    const days = fDay==='all' ? [1,2,3,4,5] : [parseInt(fDay)];
+    days.forEach(d => {
+      const periods = fPer==='all' ? [1,2,3,4,5,6] : [parseInt(fPer)];
+      periods.forEach(p => {
+        Object.entries(attendance[regNo]?.[d]?.[p]||{}).forEach(([date, rec]) => {
+          rows.push(`${n++},"${regNo}","${name}","Group ${group}","Day ${d}","P${p}","${rec.subject}","${isLab(d,p)?'Yes':'No'}","${rec.isBackdate?'Yes':'No'}","Present","${rec.time}","${date}"`);
+        });
+      });
+    });
+  });
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `attendance_${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}.csv`;
+  a.click();
+}
+
+// ════════════════════════════════════════════════
+// SELECTS
+// ════════════════════════════════════════════════
+function fillManSelect() {
+  document.getElementById('man-stu').innerHTML =
+    `<option value="">— Select student —</option>` +
+    students.map((stu,i)=>`<option value="${i}">${stu.regNo} — ${stu.name} (Grp ${stu.group})</option>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════
+function gv(id) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.querySelectorAll('nav button').forEach((b,i)=>
+    b.classList.toggle('active',['setup','timetable','qr','scanner','report'][i]===id));
+  document.querySelectorAll('#bottom-nav button').forEach((b,i)=>
+    b.classList.toggle('active',['setup','timetable','qr','scanner','report'][i]===id));
+  if (id==='qr') renderQR();
+  if (id==='report') renderReport();
+  if (id==='scanner') {
+    const dp = document.getElementById('sc-date');
+    if (!dp.value) dp.value = new Date().toISOString().split('T')[0];
+    updateScanContext();
+  }
+  if (id!=='scanner' && camStream) stopCam(false);
+  window.scrollTo(0,0);
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+const hadData = load();
+if (!hadData) initDefaults();
+buildSetupUI();
+buildTimetable();
+fillManSelect();
+updateCount();
+
+if (hadData) {
+  const m = document.getElementById('setup-msg');
+  m.className = 'notice info';
+  let recCount = 0;
+  Object.values(attendance).forEach(days => Object.values(days).forEach(pers => Object.values(pers).forEach(dts => recCount += Object.keys(dts).length)));
+  m.textContent = `💾 Restored saved data — ${students.length} students, ${recCount} attendance record${recCount!==1?'s':''}.`;
+  setTimeout(()=>m.style.display='none', 6000);
+}
+
+// ════════════════════════════════════════════════
+// PWA — MANIFEST (inline, no separate file needed)
+// ════════════════════════════════════════════════
+const iconSVG = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%235b6ef5'/><rect x='24' y='24' width='56' height='56' rx='10' fill='white'/><rect x='34' y='34' width='36' height='36' rx='6' fill='%235b6ef5'/><rect x='112' y='24' width='56' height='56' rx='10' fill='white'/><rect x='122' y='34' width='36' height='36' rx='6' fill='%235b6ef5'/><rect x='24' y='112' width='56' height='56' rx='10' fill='white'/><rect x='34' y='122' width='36' height='36' rx='6' fill='%235b6ef5'/><rect x='112' y='112' width='18' height='18' rx='4' fill='white'/><rect x='138' y='112' width='18' height='18' rx='4' fill='white'/><rect x='112' y='138' width='18' height='18' rx='4' fill='white'/><rect x='138' y='138' width='18' height='18' rx='4' fill='%23f5a623'/><circle cx='158' cy='46' r='30' fill='%232dd4a0'/><path d='M146 46l10 10 16-16' stroke='white' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
+const iconURL = 'data:image/svg+xml,' + iconSVG;
+
+const manifest = {
+  name: 'QR Attend — Day Order System',
+  short_name: 'QR Attend',
+  description: 'QR-based student attendance with day order',
+  start_url: './',
+  display: 'standalone',
+  background_color: '#0e0f14',
+  theme_color: '#0e0f14',
+  orientation: 'portrait-primary',
+  icons: [
+    { src: iconURL, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+    { src: iconURL, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+  ],
+  categories: ['education', 'utilities'],
+  shortcuts: [
+    { name: 'Scanner', short_name: 'Scan', description: 'Mark attendance', url: './#scanner', icons: [{ src: iconURL, sizes: '96x96' }] },
+    { name: 'Report',  short_name: 'Report', description: 'View attendance report', url: './#report', icons: [{ src: iconURL, sizes: '96x96' }] }
+  ]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+
+// ── SERVICE WORKER (inline) ──
+const swCode = `
+const CACHE = 'qr-attend-v1';
+const ASSETS = [self.location.href];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match(e.request))));
+});
+`;
+const swBlob = new Blob([swCode], {type:'application/javascript'});
+const swURL  = URL.createObjectURL(swBlob);
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(swURL, {scope:'./'}).catch(()=>{});
+}
+
+// ── INSTALL PROMPT ──
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(() => { document.getElementById('install-banner').style.display = 'block'; }, 2000);
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+  deferredPrompt = null;
+});
+
+async function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') document.getElementById('install-banner').style.display = 'none';
+    deferredPrompt = null;
+  } else {
+    // iOS fallback instructions
+    alert('To install on iPhone/iPad:\n1. Tap the Share button (box with arrow)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add"');
+  }
+}
+
+// Update bottom nav active state
+function updateBottomNav(id) {
+  document.querySelectorAll('#bottom-nav button').forEach((b,i) => {
+    b.classList.toggle('active', ['setup','timetable','qr','scanner','report'][i] === id);
+  });
+}
+</script>
+</body>
+</html>
